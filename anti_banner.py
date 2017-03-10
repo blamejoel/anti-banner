@@ -10,6 +10,7 @@
 """
 from robobrowser import RoboBrowser
 from datetime import datetime
+from datetime import timedelta
 from getpass import getpass
 import json
 import gcal
@@ -266,6 +267,20 @@ def print_course_info(course):
     print('Room: {}, {} {}'.format(times['buildingDescription'], times['building'], times['room']))
     print('Days: {}\n'.format(get_days(times)))
 
+def decrement_day(startDate):
+    """
+    Returns a day previous to a relative date.
+
+    Args:
+        startDate (string): the reference date (YYYY-MM-DD)
+
+    Returns:
+        A new date, exactly one day behind the original date.
+    """
+
+    new_date = datetime.strptime(startDate, '%Y-%m-%d') - timedelta(days=1)
+    return new_date.strftime('%Y-%m-%d')
+
 def format_date(unformatted):
     """
     Creates an international-date formatted date string from a course start 
@@ -277,13 +292,7 @@ def format_date(unformatted):
         The same date formatted in ISO format YYYY-MM-DD
     """
 
-    mo = unformatted[:2]
-    day = unformatted[3:5]
-    day = str(int(day) - 1)
-    if len(day) == 1:
-        day = '0' + day
-    year = unformatted[6:]
-    return '{}-{}-{}'.format(year, mo, day)
+    return datetime.strptime(unformatted, '%m/%d/%Y').strftime('%Y-%m-%d')
 
 def format_time(unformatted):
     """
@@ -291,7 +300,6 @@ def format_time(unformatted):
 
     Args:
         unformatted (string): The unformatted time (hhmm)
-
     Returns:
         the same time, formatted in hh:mm:ss.000-tz:of
     """
@@ -314,10 +322,10 @@ def course_to_event(course):
     # TODO: handle multiple meeting times
     times = course['meetingTimes'][0]
 
+    dayBehind = decrement_day(format_date(times['startDate']))
     hardEnd = format_date(times['endDate']).replace('-', '') + 'T000000Z'
-    endTime = format_date(times['startDate']) + 'T' + format_time(times['endTime'])
-    startTime = format_date(times['startDate']) + 'T' + \
-            format_time(times['beginTime'])
+    endTime = dayBehind + 'T' + format_time(times['endTime'])
+    startTime = dayBehind + 'T' + format_time(times['beginTime'])
 
     location = times['building'] + ' ' + times['room']
 
@@ -387,7 +395,7 @@ def import_to_gcal(calendar, events):
             calendar))
         gcal.create_calendar_event(calendar=cal['id'],event=class_event)
 
-def clean_up_events(calendar, badDate):
+def clean_up_events(calendar, capDate):
     """
     Deletes all events on the created calendar for the start date. This is 
     mostly a band-aid for some glitch that causes recurring events to also be 
@@ -395,12 +403,13 @@ def clean_up_events(calendar, badDate):
 
     Args:
         calendar (string):  calendar to nuke
-        badDate (string):   date to nuke all events off
+        capDate (string):   date to nuke all events off
     """
 
-    events = gcal.get_events_by_day(calendar=calendar, stopDay=badDate)
+    events = gcal.get_events_by_day(calendar=calendar, stopDay=capDate)
     for event in events['items']:
         print('{} {}'.format(event['summary'], event['id']))
+        gcal.delete_calendar_event(calendar=calendar, event=event['id'])
     # TODO: finish this... get events, delete events, etc.
 
 def main():
@@ -430,6 +439,11 @@ def main():
             #     print_course_info(course) # print raw course info (debug)
 
             import_to_gcal(calendar=class_schedule, events=courses)
+            start_date = format_date(courses[0]['meetingTimes'][0]['startDate'])
+            cal = gcal.calendar_exists(calendar=class_schedule, 
+                    calendarList=gcal.get_calendar_list())
+            print(cal)
+            clean_up_events(calendar=cal[0], capDate=start_date)
             print('All Done!')
         else:
             print('Oops, that schedule is not available!')
