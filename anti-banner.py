@@ -12,8 +12,12 @@ from robobrowser import RoboBrowser
 from datetime import datetime
 from getpass import getpass
 import json
+import gcal
+from pprint import pprint
 
-version = '0.1'
+version = '0.5'
+timeZone = 'America/Los_Angeles'
+tzOffset = '-07:00'
 
 # Hardcoding CAS login is only required for automation
 cas_login = {
@@ -200,19 +204,19 @@ def get_days(meetingTimes):
     day_strings = ''
 
     if meetingTimes['monday']:
-        day_strings = day_strings + 'M '
+        day_strings = day_strings + 'MO,'
     if meetingTimes['tuesday']:
-        day_strings = day_strings + 'T '
+        day_strings = day_strings + 'TU,'
     if meetingTimes['wednesday']:
-        day_strings = day_strings + 'W '
+        day_strings = day_strings + 'WE,'
     if meetingTimes['thursday']:
-        day_strings = day_strings + 'TH '
+        day_strings = day_strings + 'TH,'
     if meetingTimes['friday']:
-        day_strings = day_strings + 'F '
+        day_strings = day_strings + 'FR,'
     if meetingTimes['saturday']:
-        day_strings = day_strings + 'S '
+        day_strings = day_strings + 'SA,'
 
-    return day_strings
+    return day_strings[:-1]
 
 def get_instructor(faculty):
     """
@@ -241,9 +245,11 @@ def print_course_info(course):
     Prints all of the relevant info for a course.
 
     Args:
-        course (dict):  A dict of all the registered courses returned from the 
-                        JSON output of get_schedule()
+        course (dict):  A dict of all the course info returned from a single 
+                        entry of the JSON output of get_schedule()
     """
+
+    # TODO: handle multiple meeting times
     times = course['meetingTimes'][0]
 
     print('CRN: {}'.format(course['courseReferenceNumber']))
@@ -260,23 +266,177 @@ def print_course_info(course):
     print('Room: {}, {} {}'.format(times['buildingDescription'], times['building'], times['room']))
     print('Days: {}\n'.format(get_days(times)))
 
+def format_date(unformatted):
+    """
+    Creates an international-date formatted date string from a course start 
+    date.
 
-if __name__ == "__main__":
+    Args:
+        unformatted (string): The unformatted date (MM/DD/YYYY)
+    Returns:
+        The same date formatted in ISO format YYYY-MM-DD
+    """
+
+    mo = unformatted[:2]
+    day = unformatted[3:5]
+    day = str(int(day) - 1)
+    if len(day) == 1:
+        day = '0' + day
+    year = unformatted[6:]
+    return '{}-{}-{}'.format(year, mo, day)
+
+def format_time(unformatted):
+    """
+    Creates a time that is formatted for an event start or end time.
+
+    Args:
+        unformatted (string): The unformatted time (hhmm)
+
+    Returns:
+        the same time, formatted in hh:mm:ss.000-tz:of
+    """
+
+    hour = unformatted[:2]
+    minute = unformatted[2:]
+    return '{}:{}:00.000{}'.format(hour, minute, tzOffset)
+
+def course_to_event(course):
+    """
+    Creates a Calendar-friendly event object that can be inserted into a 
+    calendar.
+
+    Args:
+        course (dict): The course object to create an event from.
+    Returns:
+        A calendar event representation of the course.
+    """
+
+    # TODO: handle multiple meeting times
+    times = course['meetingTimes'][0]
+
+    hardEnd = format_date(times['endDate']).replace('-', '') + 'T000000Z'
+    endTime = format_date(times['startDate']) + 'T' + format_time(times['endTime'])
+    startTime = format_date(times['startDate']) + 'T' + \
+            format_time(times['beginTime'])
+
+    location = times['building'] + ' ' + times['room']
+
+    course_info = course['subject'] + '-' + course['courseNumber'] + '-' + \
+            course['sequenceNumber'] + ' - ' + course['courseTitle']
+
+    other_info = 'Instructor: ' + get_instructor(course['faculty'])[0] + '\n' + \
+            'Instructor email: ' + get_instructor(course['faculty'])[1] + \
+            '\n' + course['scheduleDescription']
+
+    event = {
+            'summary' : course_info,
+            'location' : location,
+            'description' : other_info,
+            'start' : {
+                'dateTime' : startTime,
+                'timeZone': timeZone,
+                },
+            'end': {
+                'dateTime' : endTime,
+                'timeZone': timeZone,
+                },
+            'recurrence' : [
+                'RRULE:FREQ=WEEKLY;UNTIL=' + hardEnd + ';BYDAY=' + \
+                        get_days(times)
+                ],
+            # 'attendees' : [
+            #     ],
+            # 'reminders' : {
+            #     'useDefault' : False,
+            #     'overrides' : [
+            #         {'method' : 'popup', 'minutes' : 10},
+            #         ],
+            #     },
+            }
+    return event
+
+def import_to_gcal(calendar, events):
+    """
+    Imports a courses object into Google Calendar using gcal.py
+
+    Args:
+        events (obj): the events to import.
+    """
+
+    calendar_list = gcal.get_calendar_list()
+    for cal_id in gcal.calendar_exists(calendar=calendar, 
+            calendarList=calendar_list):
+        while True:
+            confirm = input('{} calendar exists, id: {}. Delete? (y/n)'
+                    .format(calendar, cal_id))
+            if confirm.lower() == 'n':
+                print('Okay. Please resolve the conflict and try ' + \
+                        'again.')
+                exit(1)
+            elif confirm.lower() == 'y':
+                print('Deleting {}'.format(calendar))
+                gcal.delete_calendar(calendar=cal_id)
+                break;
+    cal = gcal.create_calendar(calendar=calendar, 
+            calendarList=calendar_list)
+    print('Calendar created, id: {}'.format(cal['id']))
+
+    for course in events:
+        class_event = course_to_event(course)
+        print('Adding {} to {} calendar'.format(class_event['summary'], 
+            calendar))
+        gcal.create_calendar_event(calendar=cal['id'],event=class_event)
+
+def clean_up_events(calendar, badDate):
+    """
+    Deletes all events on the created calendar for the start date. This is 
+    mostly a band-aid for some glitch that causes recurring events to also be 
+    inserted on the day the recurrence begins.
+
+    Args:
+        calendar (string):  calendar to nuke
+        badDate (string):   date to nuke all events off
+    """
+
+    events = gcal.get_events_by_day(calendar=calendar, stopDay=badDate)
+    for event in events['items']:
+        print('{} {}'.format(event['summary'], event['id']))
+    # TODO: finish this... get events, delete events, etc.
+
+def main():
+    """
+    Prompts the user for a schedule of registered classes to retrieve and adds 
+    it to their Google Calendar.
+    """
+
     print_greeting()
+
     try:
         quarter,year = get_user_input()
+        class_schedule = '{} {}'.format(quarter, year)
 
-        print('\n{} {} Schedule:'.format(quarter, year))
+        print('Connecting to Banner...')
         courses = get_schedule(quarter, year)
 
         # Check that we have received something worthwhile
         if len(courses) > 0:
-            # print_course_info(courses[0]) # print the first course only
-            for course in courses:
-                print_course_info(course)
+            print('\n{} Schedule:'.format(class_schedule))
+
+            # print_course_info(courses[7]) # print the first course only
+            # pprint(course_to_event(courses[7]))
+            # test_course = [courses[7]]
+            # import_to_gcal(calendar=class_schedule, events=test_course)
+            # for course in courses:
+            #     print_course_info(course) # print raw course info (debug)
+
+            import_to_gcal(calendar=class_schedule, events=courses)
+            print('All Done!')
         else:
             print('Oops, that schedule is not available!')
     # Catch a ctrl+c interrupt and print an exit message
     except KeyboardInterrupt:
         print('\nBye Felicia!')
         quit()
+
+if __name__ == "__main__":
+    main()
