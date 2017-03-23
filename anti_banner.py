@@ -330,7 +330,7 @@ def course_to_event(course):
     location = times['building'] + ' ' + times['room']
 
     course_info = course['subject'] + '-' + course['courseNumber'] + '-' + \
-            course['sequenceNumber'] + ' - ' + course['courseTitle']
+            course['sequenceNumber'] + ' - ' + course['courseTitle'].title()
 
     other_info = 'Instructor: ' + get_instructor(course['faculty'])[0] + '\n' + \
             'Instructor email: ' + get_instructor(course['faculty'])[1] + \
@@ -372,19 +372,22 @@ def import_to_gcal(calendar, events):
     """
 
     calendar_list = gcal.get_calendar_list()
-    for cal_id in gcal.calendar_exists(calendar=calendar, 
-            calendarList=calendar_list):
-        while True:
-            confirm = input('{} calendar exists, id: {}. Delete? (y/n)'
-                    .format(calendar, cal_id))
-            if confirm.lower() == 'n':
-                print('Okay. Please resolve the conflict and try ' + \
-                        'again.')
-                exit(1)
-            elif confirm.lower() == 'y':
-                print('Deleting {}'.format(calendar))
-                gcal.delete_calendar(calendar=cal_id)
-                break;
+    calendars = gcal.calendar_exists(calendar=calendar, 
+            calendarList=calendar_list)
+    if calendars:
+        for cal_id in gcal.calendar_exists(calendar=calendar, 
+                calendarList=calendar_list):
+            while True:
+                confirm = input('{} calendar exists, id: {}. Delete? (y/n)'
+                        .format(calendar, cal_id))
+                if confirm.lower() == 'n':
+                    print('Okay. Please resolve the conflict and try ' + \
+                            'again.')
+                    exit(1)
+                elif confirm.lower() == 'y':
+                    print('Deleting {}'.format(calendar))
+                    gcal.delete_calendar(calendar=cal_id)
+                    break;
     cal = gcal.create_calendar(calendar=calendar, 
             calendarList=calendar_list)
     print('Calendar created, id: {}'.format(cal['id']))
@@ -393,24 +396,32 @@ def import_to_gcal(calendar, events):
         class_event = course_to_event(course)
         print('Adding {} to {} calendar'.format(class_event['summary'], 
             calendar))
-        gcal.create_calendar_event(calendar=cal['id'],event=class_event)
+        event = gcal.create_calendar_event(calendar=cal['id'],event=class_event)
 
-def clean_up_events(calendar, capDate):
+        # Delete first (dummy) instance of course
+        clean_up_events(calendar=cal['id'], event=event['id'], 
+                capDate=class_event['start']['dateTime'])
+
+def clean_up_events(calendar, event, capDate):
     """
-    Deletes all events on the created calendar for the start date. This is 
+    Deletes the first instance of an event on calendar for a date. This is 
     mostly a band-aid for some glitch that causes recurring events to also be 
     inserted on the day the recurrence begins.
 
     Args:
         calendar (string):  calendar to nuke
+        event   (string);   event id to look for
         capDate (string):   date to nuke all events off
     """
 
-    events = gcal.get_events_by_day(calendar=calendar, stopDay=capDate)
-    for event in events['items']:
-        print('{} {}'.format(event['summary'], event['id']))
-        gcal.delete_calendar_event(calendar=calendar, event=event['id'])
-    # TODO: finish this... get events, delete events, etc.
+    # Get all instances of the given course
+    instances = gcal.get_event_instances(calendar=calendar, event=event)
+    
+    for instance in instances['items']:
+        # Double check that the we have the correct date
+        if instance['start']['dateTime'][:10] == capDate[:10]:
+            gcal.delete_calendar_event(calendar=calendar, event=instance['id'])
+            break
 
 def main():
     """
@@ -439,11 +450,6 @@ def main():
             #     print_course_info(course) # print raw course info (debug)
 
             import_to_gcal(calendar=class_schedule, events=courses)
-            start_date = format_date(courses[0]['meetingTimes'][0]['startDate'])
-            cal = gcal.calendar_exists(calendar=class_schedule, 
-                    calendarList=gcal.get_calendar_list())
-            print(cal)
-            clean_up_events(calendar=cal[0], capDate=start_date)
             print('All Done!')
         else:
             print('Oops, that schedule is not available!')
