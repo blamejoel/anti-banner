@@ -16,7 +16,7 @@ import json
 import gcal
 from pprint import pprint
 
-version = '0.5'
+version = '1.0'
 timeZone = 'America/Los_Angeles'
 tzOffset = '-07:00'
 
