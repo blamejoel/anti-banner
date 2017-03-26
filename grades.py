@@ -13,7 +13,7 @@ from datetime import datetime
 from datetime import timedelta
 from getpass import getpass
 import json
-from pprint import pprint
+import argparse
 
 version = '1.0'
 
@@ -22,10 +22,12 @@ cas_login = {
         'netID':'',
         'password':''
         }
-term_info = {
-        'quarter' : 'Winter',
-        'year' : '2017'
-        }
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-q', nargs='?', metavar='academic quarter', 
+        help='fall, spring, winter, summer, etc.')
+parser.add_argument('-y', nargs='?', metavar='academic year', help='2017, etc.')
+args = vars(parser.parse_args())
 
 def print_greeting():
     """
@@ -64,49 +66,74 @@ def get_user_input():
         A tuple with the quarter and year as Strings.
     """
 
-    quarter = ''
-    year = ''
+    quarter = args['q']
+    year = args['y']
     now = datetime.now()
+    min_year = 2015
 
-    # Get quarter
-    while True:
-        print('Select a quarter (1-4): ')
-        print('\t1. Fall')
-        print('\t2. Winter')
-        print('\t3. Spring')
-        print('\t4. Summer')
-        select = input()
-        if select >= '1' and select <= '4':
-            if select == '1':
-                quarter = 'Fall'
-            elif select == '2':
-                quarter = 'Winter'
-            elif select == '3':
-                quarter = 'Spring'
-            elif select == '4':
-                quarter = 'Summer'
-            break;
-        else:
-            print('Please select a valid quarter.')
+    if quarter is None:
+        # Get quarter
+        while True:
+            print('Select a quarter (1-4): ')
+            print('\t1. Fall')
+            print('\t2. Winter')
+            print('\t3. Spring')
+            print('\t4. Summer')
+            try:
+                select = input()
+            except KeyboardInterrupt:
+                print('\nBye Felicia!')
+                quit()
+            if select >= '1' and select <= '4':
+                if select == '1':
+                    quarter = 'Fall'
+                elif select == '2':
+                    quarter = 'Winter'
+                elif select == '3':
+                    quarter = 'Spring'
+                elif select == '4':
+                    quarter = 'Summer'
+                break;
+            else:
+                print('Please select a valid quarter.')
 
-    # Get year
-    while True:
-        year = input('{} {}?\n(enter to accept, type new year to change) '
-                .format(quarter, now.year)
-                )
+    if year is None or not int(year) >= min_year and int(year) <= int(now.year):
+        # Get year
+        while True:
+            # A simple check for a realistic year. Banner doesn't seem to have
+            # anything before 2016...
+            if year is not None and int(year) >= min_year and \
+            int(year) <= int(now.year):
+                break;
+            else:
+                print('Choose a year between {} and {} (default).'
+                        .format(min_year, now.year))
 
-        # Check if user just pressed "return" key with no input
-        if len(year) == 0:
-            year = str(now.year)
+            try:
+                year = input('{} {}?\n'.format(decode_quarter(quarter), 
+                    now.year) + '(enter to accept, type new year to change) '
+                        )
+            except KeyboardInterrupt:
+                print('\nBye Felicia!')
+                quit()
 
-        # A simple check for a realistic year. Banner doesn't seem to have
-        # anything before 2016...
-        if int(year) >= int(2016) and int(year) <= int(now.year):
-            break;
-        else:
-            print('Let\'s try that again...')
+            # Check if user just pressed "return" key with no input
+            if len(year) == 0:
+                year = str(now.year)
 
-    return (quarter,year)
+    return (quarter.title(), year)
+
+def decode_quarter(quarter):
+    if quarter.lower() == 'fall' or quarter == '1':
+        return 'Fall'
+    if quarter.lower() == 'winter' or quarter == '2':
+        return 'Winter'
+    if quarter.lower() == 'spring' or quarter == '3':
+        return 'Spring'
+    if quarter.lower() == 'summer' or quarter == '4':
+        return 'Summer'
+    else:
+        return None
 
 def encode_quarter(quarter):
     """
@@ -214,9 +241,7 @@ def main():
     print_greeting()
 
     try:
-        quarter,year = (term_info['quarter'], term_info['year'])
-        if len(quarter) == 0 and len(year) == 0:
-            quarter,year = get_user_input()
+        quarter,year = get_user_input()
         class_schedule = '{} {}'.format(quarter, year)
 
         print('Connecting to Banner...')
@@ -236,7 +261,9 @@ def main():
                 print('No grades available yet...')
             print('All Done!')
         else:
-            print('Oops, that schedule is not available!')
+            print('Oops, there is nothing available for {} {} yet!'.format(
+                decode_quarter(quarter), year
+                ))
     # Catch a ctrl+c interrupt and print an exit message
     except KeyboardInterrupt:
         print('\nBye Felicia!')
