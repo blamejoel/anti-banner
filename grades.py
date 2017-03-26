@@ -17,12 +17,6 @@ import argparse
 
 version = '1.0'
 
-# Hardcoding CAS login is only required for automation
-cas_login = {
-        'netID':'',
-        'password':''
-        }
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-q', nargs='?', metavar='academic quarter', 
         help='fall, spring, winter, summer, etc.')
@@ -44,7 +38,13 @@ def get_login():
         A tuple with the user's netID and password.
     """
 
-    cas_login = {'netID' : '', 'password' : ''}
+    cas_login = {}
+    try:
+        with open('cas_login.json') as cas:
+            cas_login = json.loads(cas.read())
+    except:
+        cas_login = {'netID' : '', 'password' : ''}
+    # print(cas_login)
 
     while True:
         # Simple check for netID at least 5 characters long
@@ -121,7 +121,7 @@ def get_user_input():
             if len(year) == 0:
                 year = str(now.year)
 
-    return (quarter.title(), year)
+    return (decode_quarter(quarter).title(), year)
 
 def decode_quarter(quarter):
     if quarter.lower() == 'fall' or quarter == '1':
@@ -189,9 +189,8 @@ def get_schedule(quarter, year):
     # Get a reference to the CAS login form from the login redirect
     form = browser.get_forms()[0]
 
-    # Get the netID info if the global values aren't set
-    if len(cas_login['netID']) == 0 or len(cas_login['password']) == 0:
-        cas_login['netID'], cas_login['password'] = get_login()
+    cas_login = {}
+    cas_login['netID'], cas_login['password'] = get_login()
 
     # Fill out the CAS form programmatically
     form['username'].value = cas_login['netID']
