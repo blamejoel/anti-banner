@@ -14,6 +14,7 @@ from datetime import timedelta
 from getpass import getpass
 import json
 import argparse
+import os
 
 version = '1.0'
 
@@ -22,6 +23,8 @@ parser.add_argument('-q', nargs='?', metavar='academic quarter',
         help='fall, spring, winter, summer, etc.')
 parser.add_argument('-y', nargs='?', metavar='academic year', help='2017, etc.')
 args = vars(parser.parse_args())
+
+PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 def print_greeting():
     """
@@ -32,19 +35,20 @@ def print_greeting():
 
 def get_login():
     """
-    Gets the CAS login info from the user through command line prompts.
+    Gets the CAS login info from cas_login.json file in project root or from 
+    user via CLI input.
 
     Returns:
         A tuple with the user's netID and password.
     """
 
     cas_login = {}
+
     try:
-        with open('cas_login.json') as cas:
+        with open(os.path.join(PROJ_ROOT, 'cas_login.json')) as cas:
             cas_login = json.loads(cas.read())
     except:
         cas_login = {'netID' : '', 'password' : ''}
-    # print(cas_login)
 
     while True:
         # Simple check for netID at least 5 characters long
@@ -60,14 +64,16 @@ def get_login():
 
 def get_user_input():
     """
-    Gets the quarter and year info from the user through command line prompts.
+    Gets the quarter and year info from the user through CLI prompts.
 
     Returns:
         A tuple with the quarter and year as Strings.
     """
 
+    # Attempt to load CLI args
     quarter = args['q']
     year = args['y']
+
     now = datetime.now()
     min_year = 2015
 
@@ -124,6 +130,17 @@ def get_user_input():
     return (decode_quarter(quarter).title(), year)
 
 def decode_quarter(quarter):
+    """
+    Helper function to format a quarter for output from a numeric value or 
+    English form.
+
+    Args:
+        quarter (string):   The academic quarter to decode, could be English 
+                            term i.e. "Spring" or a numeric representation of 
+                            the quarter i.e. "3" for Spring.
+    Returns:
+        A formatted string representing the academic quarter in English.
+    """
     if quarter.lower() == 'fall' or quarter == '1':
         return 'Fall'
     if quarter.lower() == 'winter' or quarter == '2':
@@ -217,7 +234,7 @@ def get_schedule(quarter, year):
     return parsed_json['data']['registrations']
 
 
-def print_course_info(course):
+def print_course_grade_info(course):
     """
     Prints all of the relevant info for a course.
 
@@ -227,13 +244,13 @@ def print_course_info(course):
     """
 
     print('Course: {} {} - {}'.format(course['subject'], 
-        course['courseNumber'], course['courseTitle']))
+        course['courseNumber'], course['courseTitle'].title()))
     print('Grade: {}\n'.format(course['grade']))
 
 
 def main():
     """
-    Prompts the user for a schedule of registered classes to retrieve and 
+    Prompts the user for a schedule of registered classes to retrieve, then 
     attempts to retrieve grades.
     """
 
@@ -253,7 +270,7 @@ def main():
             no_grades = True
             for course in courses:
                 if not (course['grade'] == None):
-                    print_course_info(course)
+                    print_course_grade_info(course)
                     no_grades = False
 
             if no_grades:
