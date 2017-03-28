@@ -222,7 +222,7 @@ def get_schedule(quarter, year):
 
     try:
         parsed_json = json.loads(str(browser.parsed))
-        with open('dump.json', 'w') as dump:
+        with open('{}_{}_dump.json'.format(quarter.lower(), year), 'w') as dump:
             dump.write(str(browser.parsed))
     except json.decoder.JSONDecodeError:
         # Error parsing JSON data, login probably failed?
