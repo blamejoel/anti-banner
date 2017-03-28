@@ -6,7 +6,7 @@
     Python Version 3.5.2
 
     Anti-Banner Grades Preview Fetcher - Tries to fetch grade data before it's 
-    available on Rweb.
+    available on RWeb.
 """
 from robobrowser import RoboBrowser
 from datetime import datetime

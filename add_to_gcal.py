@@ -14,17 +14,20 @@ from datetime import timedelta
 from getpass import getpass
 import json
 import gcal
-from pprint import pprint
+import argparse
+import os
 
 version = '1.0'
 timeZone = 'America/Los_Angeles'
 tzOffset = '-07:00'
 
-# Hardcoding CAS login is only required for automation
-cas_login = {
-        'netID':'',
-        'password':''
-        }
+parser = argparse.ArgumentParser()
+parser.add_argument('-q', nargs='?', metavar='academic quarter', 
+        help='fall, spring, winter, summer, etc.')
+parser.add_argument('-y', nargs='?', metavar='academic year', help='2017, etc.')
+args = vars(parser.parse_args())
+
+PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 def print_greeting():
     """
@@ -35,13 +38,20 @@ def print_greeting():
 
 def get_login():
     """
-    Gets the CAS login info from the user through command line prompts.
+    Gets the CAS login info from cas_login.json file in project root or from 
+    user via CLI input.
 
     Returns:
         A tuple with the user's netID and password.
     """
 
-    cas_login = {'netID' : '', 'password' : ''}
+    cas_login = {}
+
+    try:
+        with open(os.path.join(PROJ_ROOT, 'cas_login.json')) as cas:
+            cas_login = json.loads(cas.read())
+    except:
+        cas_login = {'netID' : '', 'password' : ''}
 
     while True:
         # Simple check for netID at least 5 characters long
@@ -57,55 +67,93 @@ def get_login():
 
 def get_user_input():
     """
-    Gets the quarter and year info from the user through command line prompts.
+    Gets the quarter and year info from the user through CLI prompts.
 
     Returns:
         A tuple with the quarter and year as Strings.
     """
 
-    quarter = ''
-    year = ''
+    # Attempt to load CLI args
+    quarter = args['q']
+    year = args['y']
+
     now = datetime.now()
+    min_year = 2015
 
-    # Get quarter
-    while True:
-        print('Select a quarter (1-4): ')
-        print('\t1. Fall')
-        print('\t2. Winter')
-        print('\t3. Spring')
-        print('\t4. Summer')
-        select = input()
-        if select >= '1' and select <= '4':
-            if select == '1':
-                quarter = 'Fall'
-            elif select == '2':
-                quarter = 'Winter'
-            elif select == '3':
-                quarter = 'Spring'
-            elif select == '4':
-                quarter = 'Summer'
-            break;
-        else:
-            print('Please select a valid quarter.')
+    if quarter is None:
+        # Get quarter
+        while True:
+            print('Select a quarter (1-4): ')
+            print('\t1. Fall')
+            print('\t2. Winter')
+            print('\t3. Spring')
+            print('\t4. Summer')
+            try:
+                select = input()
+            except KeyboardInterrupt:
+                print('\nBye Felicia!')
+                quit()
+            if select >= '1' and select <= '4':
+                if select == '1':
+                    quarter = 'Fall'
+                elif select == '2':
+                    quarter = 'Winter'
+                elif select == '3':
+                    quarter = 'Spring'
+                elif select == '4':
+                    quarter = 'Summer'
+                break;
+            else:
+                print('Please select a valid quarter.')
 
-    # Get year
-    while True:
-        year = input('{} {}?\n(enter to accept, type new year to change) '
-                .format(quarter, now.year)
-                )
+    if year is None or not int(year) >= min_year and int(year) <= int(now.year):
+        # Get year
+        while True:
+            # A simple check for a realistic year. Banner doesn't seem to have
+            # anything before 2016...
+            if year is not None and int(year) >= min_year and \
+            int(year) <= int(now.year):
+                break;
+            else:
+                print('Choose a year between {} and {} (default).'
+                        .format(min_year, now.year))
 
-        # Check if user just pressed "return" key with no input
-        if len(year) == 0:
-            year = str(now.year)
+            try:
+                year = input('{} {}?\n'.format(decode_quarter(quarter), 
+                    now.year) + '(enter to accept, type new year to change) '
+                        )
+            except KeyboardInterrupt:
+                print('\nBye Felicia!')
+                quit()
 
-        # A simple check for a realistic year. Banner doesn't seem to have
-        # anything before 2016...
-        if int(year) >= int(2016) and int(year) <= int(now.year):
-            break;
-        else:
-            print('Let\'s try that again...')
+            # Check if user just pressed "return" key with no input
+            if len(year) == 0:
+                year = str(now.year)
 
-    return (quarter,year)
+    return (decode_quarter(quarter).title(), year)
+
+def decode_quarter(quarter):
+    """
+    Helper function to format a quarter for output from a numeric value or 
+    English form.
+
+    Args:
+        quarter (string):   The academic quarter to decode, could be English 
+                            term i.e. "Spring" or a numeric representation of 
+                            the quarter i.e. "3" for Spring.
+    Returns:
+        A formatted string representing the academic quarter in English.
+    """
+    if quarter.lower() == 'fall' or quarter == '1':
+        return 'Fall'
+    if quarter.lower() == 'winter' or quarter == '2':
+        return 'Winter'
+    if quarter.lower() == 'spring' or quarter == '3':
+        return 'Spring'
+    if quarter.lower() == 'summer' or quarter == '4':
+        return 'Summer'
+    else:
+        return None
 
 def encode_quarter(quarter):
     """
@@ -161,9 +209,8 @@ def get_schedule(quarter, year):
     # Get a reference to the CAS login form from the login redirect
     form = browser.get_forms()[0]
 
-    # Get the netID info if the global values aren't set
-    if len(cas_login['netID']) == 0 or len(cas_login['password']) == 0:
-        cas_login['netID'], cas_login['password'] = get_login()
+    cas_login = {}
+    cas_login['netID'], cas_login['password'] = get_login()
 
     # Fill out the CAS form programmatically
     form['username'].value = cas_login['netID']
@@ -175,6 +222,8 @@ def get_schedule(quarter, year):
 
     try:
         parsed_json = json.loads(str(browser.parsed))
+        with open('dump.json', 'w') as dump:
+            dump.write(str(browser.parsed))
     except json.decoder.JSONDecodeError:
         # Error parsing JSON data, login probably failed?
         print('Something went wrong... Did you enter the correct password?')
@@ -237,7 +286,10 @@ def get_instructor(faculty):
 
             # Return the primary instructor for the course
             if i['primaryIndicator']:
-                return (i['displayName'], i['emailAddress'])
+                if i['emailAddress']:
+                    return (i['displayName'], i['emailAddress'])
+                else:
+                    return (i['displayName'], 'Unavailable')
 
     return ('Unavailable','Unavailable')
 
@@ -303,10 +355,12 @@ def format_time(unformatted):
     Returns:
         the same time, formatted in hh:mm:ss.000-tz:of
     """
-
-    hour = unformatted[:2]
-    minute = unformatted[2:]
-    return '{}:{}:00.000{}'.format(hour, minute, tzOffset)
+    if unformatted:
+        hour = unformatted[:2]
+        minute = unformatted[2:]
+        return '{}:{}:00.000{}'.format(hour, minute, tzOffset)
+    else:
+        return '00:00:00.000{}'.format(tzOffset)
 
 def course_to_event(course):
     """
@@ -393,14 +447,21 @@ def import_to_gcal(calendar, events):
     print('Calendar created, id: {}'.format(cal['id']))
 
     for course in events:
-        class_event = course_to_event(course)
-        print('Adding {} to {} calendar'.format(class_event['summary'], 
-            calendar))
-        event = gcal.create_calendar_event(calendar=cal['id'],event=class_event)
+        if course['meetingTimes'][0]['beginTime']:
+            # Course has a valid start time
+            class_event = course_to_event(course)
+            print('Adding {} to {} calendar'.format(class_event['summary'], 
+                calendar))
+            event = gcal.create_calendar_event(calendar=cal['id'],event=class_event)
 
-        # Delete first (dummy) instance of course
-        clean_up_events(calendar=cal['id'], event=event['id'], 
-                capDate=class_event['start']['dateTime'])
+            # Delete first (dummy) instance of course
+            clean_up_events(calendar=cal['id'], event=event['id'], 
+                    capDate=class_event['start']['dateTime'])
+        elif course['instructionalMethodDescription'].lower() == 'online':
+            # Check if course is online
+            class_event = course_to_event(course)
+            print('CAUTION! {} is ONLINE, skipping calendar'.format(
+                class_event['summary']))
 
 def clean_up_events(calendar, event, capDate):
     """
