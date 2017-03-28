@@ -7,6 +7,9 @@ system.
 the schedule to Google Calendar.  
 * `grades.py` - Gets course grades from the registration info on Banner. Often 
 times, grades are available here before they are officially posted.  
+* `banner_changes.py` - Checks Banner for changes in registration data. 
+Could be scheduled to run on a timed interval and send notifications of any 
+changes.
 
 
 These tools are a work in-progress and although they may work "good-enough", 
@@ -56,7 +59,8 @@ cas_login.json file.
 
 `./grades.py -q winter -y 2017`
 
+`./banner_changes.py -q winter -y 2017`
+
 If it's your first time running the add_to_gcal.py script, your browser will be 
 opened to obtain OAuth credentials for your Google Account. Login to the Google 
 account you'd like to import the schedule into.
-
