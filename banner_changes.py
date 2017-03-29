@@ -119,7 +119,7 @@ def main():
         if not SILENT:
             print('New changes!')
         notify(False)
-        update_changes(changes)
+        update_changes(quarter, year, changes)
     else:
         log_entry('')
         if not SILENT:
