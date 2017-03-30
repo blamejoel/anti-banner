@@ -11,6 +11,21 @@ times, grades are available here before they are officially posted.
 Could be scheduled to run on a timed interval and send notifications of any 
 changes.
 
+## Binaries
+Packaged binaries are also available for Linux for the following utilities!
+* grades
+* add_to_gcal
+
+The prepackaged binaries are ready to go with no installation required 
+(hopefully). Again, nothing is promised to be working, report any bugs to the 
+issues tracker.
+
+These are the available optional arguments for the binaries:  
+`-q [quarter]` - the academic you'd like to use in your query
+`-y [year]` - the academic year you'd like to use in your query
+`-c [path/to/credentials]` - the path to your credentials.json
+
+Example: `./grades -q winter -y 2017 -c /home/bob/credentials.json`
 
 These tools are a work in-progress and although they may work "good-enough", 
 there may still be some bugs. Please report any such findings to the issue 
@@ -35,11 +50,11 @@ You will also need to install the Google Client Library for Python
 `pip install --upgrade google-api-python-client`
 
 ### Other prep
-You may create a JSON file, `cas_login.json`, to store CAS credentials to 
+You may create a JSON file, `credentials.json`, to store CAS credentials to 
 automate the process, otherwise you will be prompted for CAS credentials at 
 runtime.  
 
-cas_login.json file structure should be  
+credentials.json file structure should be  
 ```
 {
     "netID" : "your_net_id_here",
@@ -53,7 +68,7 @@ Run the scripts!
 You may specify the academic quarter with the optional `-q` flag, and year 
 with the optional `-y` flag. The scripts will default to CLI prompts if no 
 arguments are passed for each respective argument or if there is no 
-cas_login.json file.  
+credentials.json file.  
 
 `./add_to_gcal.py -q winter -y 2017`  
 

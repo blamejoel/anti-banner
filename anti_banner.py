@@ -18,6 +18,8 @@ parser.add_argument('-q', nargs='?', metavar='academic quarter',
         help='fall, spring, winter, summer, etc.')
 parser.add_argument('-y', nargs='?', metavar='academic year', 
         help='2017, etc.')
+parser.add_argument('-c', nargs='?', metavar='credentials file', 
+        help='path/to/your/credentials_file.json')
 parser.add_argument('--silent', action='store_true', help='suppresses output')
 parser.add_argument('--debug', action='store_true', 
         help='store dumps for debugging')
@@ -38,32 +40,40 @@ def print_greeting(module, version):
 
 def get_login():
     """
-    Gets the CAS login info from cas_login.json file in project root or from 
+    Gets the CAS login info from credentials.json file in project root or from 
     user via CLI input.
 
     Returns:
         A tuple with the user's netID and password.
     """
 
-    cas_login = {}
+    credentials = {}
 
-    try:
-        with open(os.path.join(PROJ_ROOT, 'cas_login.json')) as cas:
-            cas_login = json.loads(cas.read())
-    except:
-        cas_login = {'netID' : '', 'password' : ''}
+    if args['c']:
+        try:
+            with open(args['c']) as cas:
+                credentials = json.loads(cas.read())
+        except:
+            print('{} is not a valid path.'.format(args['c']))
+            exit(1)
+    else:
+        try:
+            with open(os.path.join(PROJ_ROOT, 'credentials.json')) as cas:
+                credentials = json.loads(cas.read())
+        except:
+            credentials = {'netID' : '', 'password' : ''}
 
     while True:
         # Simple check for netID at least 5 characters long
-        if len(cas_login['netID']) < 5:
-            cas_login['netID'] = input('Enter UCR netID: ')
+        if len(credentials['netID']) < 5:
+            credentials['netID'] = input('Enter UCR netID: ')
         # Next check is to make sure something has been entered for password
-        elif len(cas_login['password']) < 1:
-            cas_login['password'] = getpass('Enter UCR CAS password: ')
+        elif len(credentials['password']) < 1:
+            credentials['password'] = getpass('Enter UCR CAS password: ')
         else:
             break
 
-    return (cas_login['netID'], cas_login['password'])
+    return (credentials['netID'], credentials['password'])
 
 def get_user_input():
     """
@@ -239,12 +249,12 @@ def get_schedule(quarter, year):
     # Get a reference to the CAS login form from the login redirect
     form = browser.get_forms()[0]
 
-    cas_login = {}
-    cas_login['netID'], cas_login['password'] = get_login()
+    credentials = {}
+    credentials['netID'], credentials['password'] = get_login()
 
     # Fill out the CAS form programmatically
-    form['username'].value = cas_login['netID']
-    form['password'].value = cas_login['password']
+    form['username'].value = credentials['netID']
+    form['password'].value = credentials['password']
 
     # Submit the CAS login form
     form.serialize()
