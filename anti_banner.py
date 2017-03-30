@@ -16,12 +16,18 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-q', nargs='?', metavar='academic quarter', 
         help='fall, spring, winter, summer, etc.')
-parser.add_argument('-y', nargs='?', metavar='academic year', help='2017, etc.')
+parser.add_argument('-y', nargs='?', metavar='academic year', 
+        help='2017, etc.')
 parser.add_argument('--silent', action='store_true', help='suppresses output')
+parser.add_argument('--debug', action='store_true', 
+        help='store dumps for debugging')
 args = vars(parser.parse_args())
 
 PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
-DEBUG = False
+LOG_DIR = os.path.join(PROJ_ROOT, '.logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+DEBUG = args['debug']
 
 def print_greeting(module, version):
     """
@@ -189,13 +195,15 @@ def parse_response(response):
         term = parsed_json['data']['registrations'][0]['termDescription'] \
             .replace(' ','_').lower()
         if DEBUG:
-            with open('{}_dump.json'.format(term), 'w') as dump:
+            dump_file = os.path.join(LOG_DIR, '{}_dump.json'.format(term))
+            with open(dump_file, 'w') as dump:
                 dump.write(response)
     except json.decoder.JSONDecodeError:
         # Error parsing JSON data, login probably failed?
         print('Something went wrong... Did you enter the correct password?')
         print('Check error log.')
-        with open('error.log', 'w') as dump:
+        err_file = os.path.join(LOG_DIR, '{}_error.log'.format(term))
+        with open(err_file, 'w') as dump:
             dump.write(str(response))
 
         exit(1)

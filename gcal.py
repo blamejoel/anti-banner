@@ -6,14 +6,14 @@ from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
+from anti_banner import parser
 
-import datetime
-
-# try:
-#     import argparse
-#     flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
-# except ImportError:
-#     flags = None
+try:
+    import argparse
+    flags = argparse.ArgumentParser(parents=[tools.argparser, parser], 
+            conflict_handler='resolve').parse_args()
+except ImportError:
+    flags = None
 
 # TODO: cleanup and comment this whole thing...
 

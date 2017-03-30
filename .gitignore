@@ -92,5 +92,4 @@ ENV/
 response.json
 client_secret.json
 cas_login.json
-*_dump.json
-changes.log
+.logs/
