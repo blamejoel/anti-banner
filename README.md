@@ -21,9 +21,9 @@ The prepackaged binaries are ready to go with no installation required
 issues tracker.
 
 These are the available optional arguments for the binaries:  
-`-q [quarter]` - the academic you'd like to use in your query
-`-y [year]` - the academic year you'd like to use in your query
-`-c [path/to/credentials]` - the path to your credentials.json
+`-q [quarter]` - the academic you'd like to use in your query  
+`-y [year]` - the academic year you'd like to use in your query  
+`-c [path/to/credentials]` - the path to your credentials.json  
 
 Example: `./grades -q winter -y 2017 -c /home/bob/credentials.json`
 
