@@ -13,7 +13,6 @@ import anti_banner as app
 
 app_name = 'Changes'
 version = '1.0'
-# app.parser.add_argument('-s', action='store_true', help='suppresses output')
 SILENT = app.args['silent']
 
 def new_changes(quarter, year):
@@ -34,14 +33,15 @@ def new_changes(quarter, year):
         courses = app.parse_response(reg)
         # Check that we have received something worthwhile
         if len(courses) > 0:
+            dump_file = app.os.path.join(app.LOG_DIR, '{}_{}_dump.json'.format(
+                quarter.lower(), year))
             try:
-                with open('{}_{}_dump.json'.format(quarter.lower(), year)) as dump:
+                with open(dump_file) as dump:
                     if dump.read() != reg:
                         changes = reg
             except IOError:
                 # File was not available, create it
-                with open('{}_{}_dump.json'.format(quarter.lower(), year), 
-                        'w') as dump:
+                with open(dump_file, 'w') as dump:
                     dump.write(reg)
 
         else:
