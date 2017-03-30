@@ -31,6 +31,10 @@ These tools are a work in-progress and although they may work "good-enough",
 there may still be some bugs. Please report any such findings to the issue 
 tracker!
 
+**NOTE:** You still need a valid `client_secret.json` file in the same 
+directory as the add_to_gcal binary! (see Google API Client ID in Preparation 
+section)
+
 ## Dependencies
 Python 3.5.2+  
 Robobrowser  
