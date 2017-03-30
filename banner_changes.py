@@ -98,7 +98,8 @@ def log_entry(data):
     """
     now = app.datetime.now()
     timestamp = now.strftime('%Y-%m-%d-%H:%M')
-    with open('changes.log', 'a') as log:
+    changes = app.os.path.join(app.LOG_DIR, 'changes.log')
+    with open(changes, 'a') as log:
         log.write('{}: {}\n'.format(timestamp, data))
 
 def main():
