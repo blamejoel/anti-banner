@@ -278,7 +278,6 @@ def main():
         quarter,year = app.get_user_input()
         class_schedule = '{} {}'.format(quarter, year)
 
-        print('Connecting to Banner...')
         courses = app.parse_response(app.get_schedule(quarter, year))
 
         # Check that we have received something worthwhile

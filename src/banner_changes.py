@@ -13,7 +13,6 @@ import anti_banner as app
 
 app_name = 'Changes'
 version = '1.0'
-SILENT = app.args['silent']
 
 def new_changes(quarter, year):
     """
@@ -107,23 +106,21 @@ def main():
     Checks for a change in Banner registration data since last GET
     """
 
-    if not SILENT:
+    if not app.SILENT:
         app.print_greeting(module=app_name, version=version)
 
     quarter,year = app.get_user_input()
 
-    if not SILENT:
-        print('Connecting to Banner...')
     changes = new_changes(quarter, year)
     if changes:
         log_entry('New changes')
-        if not SILENT:
+        if not app.SILENT:
             print('New changes!')
         notify(False)
         update_changes(quarter, year, changes)
     else:
         log_entry('')
-        if not SILENT:
+        if not app.SILENT:
             print('Nothing new for {} {}'.format(quarter, year))
 
 if __name__ == "__main__":

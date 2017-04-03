@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
     anti_banner.py
     Author: Joel Gomez
@@ -12,6 +13,7 @@ from getpass import getpass
 import json
 import argparse
 import os
+import shelve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-q', nargs='?', metavar='academic quarter', 
@@ -23,13 +25,21 @@ parser.add_argument('-c', nargs='?', metavar='credentials file',
 parser.add_argument('--silent', action='store_true', help='suppresses output')
 parser.add_argument('--debug', action='store_true', 
         help='store dumps for debugging')
+parser.add_argument('--cached', action='store_true', 
+        help='use cached data, if available')
 args = vars(parser.parse_args())
 
+data_file = 'reg.db'
 PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(PROJ_ROOT, '.logs')
+DATA_DIR = os.path.join(PROJ_ROOT, '.data')
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+SILENT = args['silent']
 DEBUG = args['debug']
+CACHED = args['cached']
 
 def print_greeting(module, version):
     """
@@ -211,10 +221,14 @@ def parse_response(response):
     except json.decoder.JSONDecodeError:
         # Error parsing JSON data, login probably failed?
         print('Something went wrong... Did you enter the correct password?')
-        print('Check error log.')
-        err_file = os.path.join(LOG_DIR, '{}_error.log'.format(term))
-        with open(err_file, 'w') as dump:
+        print('Check error log. Banner may also be unavailable right now.')
+        now = datetime.now()
+        err_file = os.path.join(LOG_DIR, '{}_error.log'.format(
+            now.strftime('%Y-%m-%d')))
+        with open(err_file, 'a') as dump:
+            dump.write(now.strftime('### %Y-%m-%d : %H:%M'))
             dump.write(str(response))
+            dump.write('\n\n')
 
         exit(1)
 
@@ -235,6 +249,14 @@ def get_schedule(quarter, year):
     Examples:
         >>> get_schedule('spring','2017')
     """
+    term = '_' + year + quarter
+    with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
+        if CACHED and term in data:
+            reg_data = data[term]['data']
+            if not SILENT:
+                print('Cached data available from {}'.format(
+                    data[term]['dumpDate']))
+            return reg_data
 
     sched_url = 'https://registrationssb.ucr.edu/StudentRegistrationSsb/ssb' + \
             '/registrationHistory/reset?term=' + year + encode_quarter(quarter)
@@ -244,6 +266,8 @@ def get_schedule(quarter, year):
     browser = RoboBrowser(parser='html.parser')
 
     # Navigate to schedule url
+    if not SILENT:
+        print('Connecting to Banner...')
     browser.open(sched_url)
 
     # Get a reference to the CAS login form from the login redirect
@@ -260,4 +284,18 @@ def get_schedule(quarter, year):
     form.serialize()
     browser.submit_form(form)
 
+    with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
+    # data = shelve.open(os.path.join(DATA_DIR, 'reg'))
+        now = datetime.now()
+        record = { term : '' }
+        record[term] = { 'dumpDate' : now.strftime('%Y-%m-%d'), 
+                'data' : str(browser.parsed) }
+        data[term] = record[term]
+        # data.close()
+
     return str(browser.parsed)
+
+# def main():
+
+# if __name__ == "__main__":
+#     main()
