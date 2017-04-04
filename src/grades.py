@@ -37,9 +37,25 @@ def main():
 
     try:
         quarter,year = app.get_user_input()
+        term = '_{}{}'.format(year, quarter)
         class_schedule = '{} {}'.format(quarter, year)
 
-        courses = app.parse_response(app.get_schedule(quarter, year))
+        if app.CACHED:
+            cache = app.get_cached(term)
+            print('Grades as of {}'.format(cache['dumpDate']))
+
+        #TODO figure out a way to implement connect from binary or from script
+        connect_cmd = './banner_connect -q {} -y {}'.format(app.args['q'], 
+                app.args['y'])
+        if app.args['c']:
+            connect_cmd += ' -c {}'.format(app.args['c'])
+        if app.args['silent']:
+            connect_cmd += ' --silent'
+
+        app.run_process(connect_cmd)
+
+        cached_data = app.json.loads(app.get_cached(term)['data'])
+        courses = cached_data['data']['registrations']
 
         # Check that we have received something worthwhile
         if len(courses) > 0:

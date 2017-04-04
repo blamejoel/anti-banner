@@ -7,6 +7,7 @@ from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 from anti_banner import parser
+from anti_banner import PROJ_ROOT
 
 try:
     import argparse
@@ -31,7 +32,7 @@ def get_credentials():
     Returns:
         Credentials, the obtained credential.
     """
-    PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
+    # PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
     credential_dir = os.path.join(PROJ_ROOT, '.credentials')
     if not os.path.exists(credential_dir):
         os.makedirs(credential_dir)

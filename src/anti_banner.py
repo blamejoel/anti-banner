@@ -7,9 +7,9 @@
 
     Various helper functions for Anti-Banner utils
 """
-from robobrowser import RoboBrowser
 from datetime import datetime
 from getpass import getpass
+from subprocess import run
 import json
 import argparse
 import os
@@ -40,6 +40,8 @@ if not os.path.exists(DATA_DIR):
 SILENT = args['silent']
 DEBUG = args['debug']
 CACHED = args['cached']
+
+TODAY = datetime.now()
 
 def print_greeting(module, version):
     """
@@ -97,7 +99,6 @@ def get_user_input():
     quarter = args['q']
     year = args['y']
 
-    now = datetime.now()
     min_year = 2015
 
     if quarter is None:
@@ -126,21 +127,22 @@ def get_user_input():
             else:
                 print('Please select a valid quarter.')
 
-    if year is None or not int(year) >= min_year and int(year) <= int(now.year):
+    if year is None or not int(year) >= min_year and int(year) <= \
+            int(TODAY.year):
         # Get year
         while True:
             # A simple check for a realistic year. Banner doesn't seem to have
             # anything before 2016...
             if year is not None and int(year) >= min_year and \
-            int(year) <= int(now.year):
+            int(year) <= int(TODAY.year):
                 break;
             else:
                 print('Choose a year between {} and {} (default).'
-                        .format(min_year, now.year))
+                        .format(min_year, TODAY.year))
 
             try:
                 year = input('{} {}?\n'.format(decode_quarter(quarter), 
-                    now.year) + '(enter to accept, type new year to change) '
+                    TODAY.year) + '(enter to accept, type new year to change) '
                         )
             except KeyboardInterrupt:
                 print('\nBye Felicia!')
@@ -148,7 +150,7 @@ def get_user_input():
 
             # Check if user just pressed "return" key with no input
             if len(year) == 0:
-                year = str(now.year)
+                year = str(TODAY.year)
 
     return (decode_quarter(quarter).title(), year)
 
@@ -222,11 +224,10 @@ def parse_response(response):
         # Error parsing JSON data, login probably failed?
         print('Something went wrong... Did you enter the correct password?')
         print('Check error log. Banner may also be unavailable right now.')
-        now = datetime.now()
         err_file = os.path.join(LOG_DIR, '{}_error.log'.format(
-            now.strftime('%Y-%m-%d')))
+            TODAY.strftime('%Y-%m-%d')))
         with open(err_file, 'a') as dump:
-            dump.write(now.strftime('### %Y-%m-%d : %H:%M'))
+            dump.write(TODAY.strftime('### %Y-%m-%d : %H:%M'))
             dump.write(str(response))
             dump.write('\n\n')
 
@@ -234,73 +235,40 @@ def parse_response(response):
 
     return parsed_json['data']['registrations']
 
-def get_schedule(quarter, year):
+def get_cached(key):
     """
-    Connects to Banner and returns a JSON object of a student class schedule 
-    for a particular quarter and year.
+    Gets last banner data from local cache, if available
 
     Args:
-        quarter (string):    The academic quarter for the schedule request.
-        year (string):       The academic year for the schedule request.
-
+        quarter (string)    the academic quarter being requested
+        year (string)       the academic year being requested
     Returns:
-        A JSON object containing registered classes for the given search data.
-
-    Examples:
-        >>> get_schedule('spring','2017')
+        The cached data if available, False if it's not
     """
-    term = '_' + year + quarter
-    if CACHED:
-        with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
-            if term in data:
-                reg_data = data[term]['data']
-                if not SILENT:
-                    print('Cached data available from {}'.format(
-                        data[term]['dumpDate']))
-                return reg_data
 
-    sched_url = 'https://registrationssb.ucr.edu/StudentRegistrationSsb/ssb' + \
-            '/registrationHistory/reset?term=' + year + encode_quarter(quarter)
+    with shelve.open(os.path.join(DATA_DIR, data_file)) as cache:
+        if key in cache:
+            reg_data = cache[key]
+            if not SILENT:
+                print('Cached data available from {}'.format(
+                    cache[key]['dumpDate']))
+            return reg_data
+        else:
+            return None
 
-    # Get RoboBrowser instance, set BeautifulSoup parser to default HTML 
-    # parser for Python
-    browser = RoboBrowser(parser='html.parser')
+def cache_data(key, data):
+    """
+    Stores data into local cache
 
-    # Navigate to schedule url
-    if not SILENT:
-        print('Connecting to Banner...')
-    browser.open(sched_url)
+    Args:
+        key (string)    a key to index the data under in the cache
+        data (?)        the data to store in the cache
+    """
+    with shelve.open(os.path.join(DATA_DIR, data_file)) as cache:
+        record = { key : '' }
+        record[key] = { 'dumpDate' : TODAY.strftime('%Y-%m-%d %H:%M'), 
+                'data' : data }
+        cache[key] = record[key]
 
-    # Get a reference to the CAS login form from the login redirect
-    form = browser.get_forms()[0]
-
-    credentials = {}
-    credentials['netID'], credentials['password'] = get_login()
-
-    # Fill out the CAS form programmatically
-    form['username'].value = credentials['netID']
-    form['password'].value = credentials['password']
-
-    # Submit the CAS login form
-    form.serialize()
-    browser.submit_form(form)
-
-    with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
-        now = datetime.now()
-        record = { term : '' }
-        record[term] = { 'dumpDate' : now.strftime('%Y-%m-%d'), 
-                'data' : str(browser.parsed) }
-        data[term] = record[term]
-
-    return str(browser.parsed)
-
-def main():
-    quarter = decode_quarter(args['q']).title()
-    year = args['y']
-    parse_response(get_schedule(quarter, year))
-
-if __name__ == "__main__":
-    if args['q'] and args['y'] and int(args['y']) >= 2015 and int(args['y']) \
-            <= int(datetime.now().year):
-        main()
-    exit(0)
+def run_process(process):
+    run(process.split())
