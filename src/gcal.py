@@ -1,6 +1,7 @@
 from __future__ import print_function
 import httplib2
 import os
+import sys
 
 from apiclient import discovery
 from oauth2client import client
@@ -20,8 +21,13 @@ except ImportError:
 
 # If modifying these scopes, delete previously saved credentials
 SCOPES = 'https://www.googleapis.com/auth/calendar'
-CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Anti-Banner Google Calendar API'
+try:
+    from secret import cs_build
+    from secret import cs_finish
+    CLIENT_SECRET_FILE = cs_build()
+except ImportError:
+    CLIENT_SECRET_FILE = 'client_secret.json'
 
 def get_credentials():
     """Gets valid user credentials from storage.
@@ -43,6 +49,10 @@ def get_credentials():
     credentials = store.get()
     if not credentials or credentials.invalid:
         flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+        try:
+            cs_finish()
+        except:
+            pass
         flow.user_agent = APPLICATION_NAME
         if flags:
             credentials = tools.run_flow(flow, store, flags)

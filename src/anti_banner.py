@@ -31,6 +31,7 @@ parser.add_argument('--cached', action='store_true',
 args = vars(parser.parse_args())
 
 data_file = 'reg.db'
+PROJ_ROOT = ''
 if getattr(sys, 'frozen', False):
     PROJ_ROOT = os.path.dirname(sys.executable)
 elif __file__:

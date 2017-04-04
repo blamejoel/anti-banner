@@ -8,10 +8,11 @@
     Anti-Banner Class Schedule Fetcher - Fetches a schedule of registered 
     classes for a specific quarter and year.
 """
-from datetime import datetime
-from datetime import timedelta
 import anti_banner as app
 import gcal
+from datetime import datetime
+from datetime import timedelta
+from banner_connect import get_schedule
 
 app_name = 'Class Schedule'
 version = '1.0'
@@ -272,13 +273,20 @@ def main():
     it to their Google Calendar.
     """
 
-    app.print_greeting(app_name, version)
-
     try:
         quarter,year = app.get_user_input()
+        term = '_{}{}'.format(year, quarter)
         class_schedule = '{} {}'.format(quarter, year)
 
-        courses = app.parse_response(app.get_schedule(quarter, year))
+        if app.CACHED:
+            cache = app.get_cached(term)
+            print('Schedule as of {}'.format(cache['dumpDate']))
+
+        else:
+            get_schedule(quarter, year)
+
+        cached_data = app.json.loads(app.get_cached(term)['data'])
+        courses = cached_data['data']['registrations']
 
         # Check that we have received something worthwhile
         if len(courses) > 0:
@@ -301,4 +309,5 @@ def main():
         quit()
 
 if __name__ == "__main__":
+    app.print_greeting(app_name, version)
     main()

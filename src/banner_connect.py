@@ -7,9 +7,11 @@
 
     Utils for connecting to banner and retreiving data
 """
-from robobrowser import RoboBrowser
-from sys import exit
 import anti_banner as app
+import requests
+import re
+import json
+from sys import exit
 
 def get_schedule(quarter, year):
     """
@@ -32,36 +34,60 @@ def get_schedule(quarter, year):
         if data:
             return data['data']
 
+    auth_url = 'https://auth.ucr.edu'
     sched_url = 'https://registrationssb.ucr.edu/StudentRegistrationSsb/' + \
             'ssb/registrationHistory/reset?term=' + year + \
             app.encode_quarter(quarter)
 
-    # Get RoboBrowser instance, set BeautifulSoup parser to default HTML 
-    # parser for Python
-    browser = RoboBrowser(parser='html.parser')
+    session = requests.Session()
 
     # Navigate to schedule url
     if not app.SILENT:
         print('Connecting to Banner...')
-    browser.open(sched_url)
+    response = session.get(sched_url)
 
-    # Get a reference to the CAS login form from the login redirect
-    form = browser.get_forms()[0]
+    # construct POST URL from form action url
+    auth_url += find_action(parse_html(response.text, 'action'))
 
     credentials = {}
     credentials['netID'], credentials['password'] = app.get_login()
 
-    # Fill out the CAS form programmatically
-    form['username'].value = credentials['netID']
-    form['password'].value = credentials['password']
+    payload = {
+            'username' : credentials['netID'],
+            'password' : credentials['password'],
+            'lt' : find_lt(parse_html(response.text, 'name="lt"')),
+            'execution' : 'e1s1',
+            '_eventId' : 'submit',
+            'submit.x' : 45,
+            'submit.y' : 16,
+            'submit' : 'LOGIN'
+            }
 
     # Submit the CAS login form
-    form.serialize()
-    browser.submit_form(form)
+    response = session.post(auth_url, data=payload)
 
-    app.cache_data(term, str(browser.parsed))
+    # update cache
+    app.cache_data(term, response.text)
 
-    return str(browser.parsed)
+    return response.text
+
+def parse_html(html, term):
+    pattern = r'\"(.+?)\"'
+    start = html.find(term)
+    end = html.find('>', start)
+    return re.findall(pattern, html[start:end])
+
+def find_action(ls):
+    for item in ls:
+        if 'cas' in item:
+            return item
+    return None
+
+def find_lt(ls):
+    for item in ls:
+        if 'LT-' in item:
+            return item
+    return None
 
 def main():
     quarter = app.decode_quarter(app.args['q']).title()

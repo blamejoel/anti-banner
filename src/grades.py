@@ -10,6 +10,7 @@
 """
 import anti_banner as app
 from sys import exit
+from banner_connect import get_schedule
 
 app_name = 'Grades (Preview) Fetcher'
 version = '1.0'
@@ -34,8 +35,6 @@ def main():
     attempts to retrieve grades.
     """
 
-    app.print_greeting(app_name, version)
-
     try:
         quarter,year = app.get_user_input()
         term = '_{}{}'.format(year, quarter)
@@ -46,20 +45,7 @@ def main():
             print('Grades as of {}'.format(cache['dumpDate']))
 
         else:
-            if getattr(app.sys, 'frozen', False):
-                # app is running as executable
-                app_path = app.os.path.join(app.PROJ_ROOT, 'banner_connect')
-            elif __file__:
-                app_path = app.os.path.join(app.PROJ_ROOT, 'banner_connect.py')
-
-            connect_cmd = '{} -q {} -y {}'.format(app_path, app.args['q'], 
-                    app.args['y'])
-            if app.args['c']:
-                connect_cmd += ' -c {}'.format(app.args['c'])
-            if app.args['silent']:
-                connect_cmd += ' --silent'
-
-            app.run_process(connect_cmd)
+            get_schedule(quarter, year)
 
         cached_data = app.json.loads(app.get_cached(term)['data'])
         courses = cached_data['data']['registrations']
@@ -87,4 +73,5 @@ def main():
         quit()
 
 if __name__ == "__main__":
+    app.print_greeting(app_name, version)
     main()

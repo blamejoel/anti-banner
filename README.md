@@ -11,19 +11,21 @@ times, grades are available here before they are officially posted.
 Could be scheduled to run on a timed interval and send notifications of any 
 changes.
 
-## Binaries
-Packaged binaries are also available for Linux for the following utilities!
-* grades
-* add_to_gcal
+## Standalone executable (NEW)
+A packaged executable is also available for Linux!
 
-The prepackaged binaries are ready to go with no installation required 
+The prepackaged executable is ready to go with no installation required 
 (hopefully). Again, nothing is promised to be working, report any bugs to the 
 issues tracker.
 
-These are the available optional arguments for the binaries:  
+These are two required arguments for the standalone executable:  
 `-q [quarter]` - the academic you'd like to use in your query  
 `-y [year]` - the academic year you'd like to use in your query  
+
+Additionally, there the following optional arguments are also available:
 `-c [path/to/credentials]` - the path to your credentials.json  
+`--cached` - use locally cached data instead of downloading the latest data 
+from Banner
 
 Example: `./grades -q winter -y 2017 -c /home/bob/credentials.json`
 
@@ -31,13 +33,9 @@ These tools are a work in-progress and although they may work "good-enough",
 there may still be some bugs. Please report any such findings to the issue 
 tracker!
 
-**NOTE:** You still need a valid `client_secret.json` file in the same 
-directory as the add_to_gcal binary! (see Google API Client ID in Preparation 
-section)
-
 ## Dependencies
 Python 3.5.2+  
-Robobrowser  
+requests
 Google API Client Library
 
 ## Prerequisites
@@ -51,7 +49,9 @@ and download the JSON file with your client id, rename it
 `client_secret.json`, and place it in the project root.
 
 You will also need to install the Google Client Library for Python  
-`pip install --upgrade google-api-python-client`
+`pip install --upgrade google-api-python-client` 
+or 
+`pip3 install --upgrade google-api-python-client`
 
 ### Other prep
 You may create a JSON file, `credentials.json`, to store CAS credentials to 

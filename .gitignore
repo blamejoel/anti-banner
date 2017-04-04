@@ -95,3 +95,4 @@ credentials.json
 .logs/
 .credentials/
 .data/
+secret.py
