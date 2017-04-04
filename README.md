@@ -22,7 +22,7 @@ These are two required arguments for the standalone executable:
 `-q [quarter]` - the academic you'd like to use in your query  
 `-y [year]` - the academic year you'd like to use in your query  
 
-Additionally, there the following optional arguments are also available:
+Additionally, the following optional arguments are also available:  
 `-c [path/to/credentials]` - the path to your credentials.json  
 `--cached` - use locally cached data instead of downloading the latest data 
 from Banner
@@ -35,7 +35,7 @@ tracker!
 
 ## Dependencies
 Python 3.5.2+  
-requests
+requests  
 Google API Client Library
 
 ## Prerequisites
