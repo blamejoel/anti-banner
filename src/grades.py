@@ -9,6 +9,7 @@
     available on RWeb.
 """
 import anti_banner as app
+from sys import exit
 
 app_name = 'Grades (Preview) Fetcher'
 version = '1.0'
@@ -44,15 +45,21 @@ def main():
             cache = app.get_cached(term)
             print('Grades as of {}'.format(cache['dumpDate']))
 
-        #TODO figure out a way to implement connect from binary or from script
-        connect_cmd = './banner_connect -q {} -y {}'.format(app.args['q'], 
-                app.args['y'])
-        if app.args['c']:
-            connect_cmd += ' -c {}'.format(app.args['c'])
-        if app.args['silent']:
-            connect_cmd += ' --silent'
+        else:
+            if getattr(app.sys, 'frozen', False):
+                # app is running as executable
+                app_path = app.os.path.join(app.PROJ_ROOT, 'banner_connect')
+            elif __file__:
+                app_path = app.os.path.join(app.PROJ_ROOT, 'banner_connect.py')
 
-        app.run_process(connect_cmd)
+            connect_cmd = '{} -q {} -y {}'.format(app_path, app.args['q'], 
+                    app.args['y'])
+            if app.args['c']:
+                connect_cmd += ' -c {}'.format(app.args['c'])
+            if app.args['silent']:
+                connect_cmd += ' --silent'
+
+            app.run_process(connect_cmd)
 
         cached_data = app.json.loads(app.get_cached(term)['data'])
         courses = cached_data['data']['registrations']

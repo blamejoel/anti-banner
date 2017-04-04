@@ -13,6 +13,7 @@ from subprocess import run
 import json
 import argparse
 import os
+import sys
 import shelve
 
 parser = argparse.ArgumentParser()
@@ -30,7 +31,10 @@ parser.add_argument('--cached', action='store_true',
 args = vars(parser.parse_args())
 
 data_file = 'reg.db'
-PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False):
+    PROJ_ROOT = os.path.dirname(sys.executable)
+elif __file__:
+    PROJ_ROOT = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(PROJ_ROOT, '.logs')
 DATA_DIR = os.path.join(PROJ_ROOT, '.data')
 if not os.path.exists(LOG_DIR):
@@ -249,9 +253,6 @@ def get_cached(key):
     with shelve.open(os.path.join(DATA_DIR, data_file)) as cache:
         if key in cache:
             reg_data = cache[key]
-            if not SILENT:
-                print('Cached data available from {}'.format(
-                    cache[key]['dumpDate']))
             return reg_data
         else:
             return None
