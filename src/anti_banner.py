@@ -250,13 +250,14 @@ def get_schedule(quarter, year):
         >>> get_schedule('spring','2017')
     """
     term = '_' + year + quarter
-    with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
-        if CACHED and term in data:
-            reg_data = data[term]['data']
-            if not SILENT:
-                print('Cached data available from {}'.format(
-                    data[term]['dumpDate']))
-            return reg_data
+    if CACHED:
+        with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
+            if term in data:
+                reg_data = data[term]['data']
+                if not SILENT:
+                    print('Cached data available from {}'.format(
+                        data[term]['dumpDate']))
+                return reg_data
 
     sched_url = 'https://registrationssb.ucr.edu/StudentRegistrationSsb/ssb' + \
             '/registrationHistory/reset?term=' + year + encode_quarter(quarter)
@@ -285,17 +286,21 @@ def get_schedule(quarter, year):
     browser.submit_form(form)
 
     with shelve.open(os.path.join(DATA_DIR, data_file)) as data:
-    # data = shelve.open(os.path.join(DATA_DIR, 'reg'))
         now = datetime.now()
         record = { term : '' }
         record[term] = { 'dumpDate' : now.strftime('%Y-%m-%d'), 
                 'data' : str(browser.parsed) }
         data[term] = record[term]
-        # data.close()
 
     return str(browser.parsed)
 
-# def main():
+def main():
+    quarter = decode_quarter(args['q']).title()
+    year = args['y']
+    parse_response(get_schedule(quarter, year))
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    if args['q'] and args['y'] and int(args['y']) >= 2015 and int(args['y']) \
+            <= int(datetime.now().year):
+        main()
+    exit(0)
