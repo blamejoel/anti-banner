@@ -8,64 +8,12 @@
     Checks for changes to Banner registration info for a given academic 
     quarter and year.
 """
-import requests
 import anti_banner as app
+from banner_connect import get_schedule
+import requests
 
 app_name = 'Changes'
 version = '1.0'
-
-def new_changes(quarter, year):
-    """
-    Connects to Banner and retrieves latest registration data and compares 
-    it to a previous dump.
-
-    Args:
-        quarter (string):   the academic quarter to check
-        year (string):      the academic year to check
-    Returns:
-        The new dump if there are changes, False if there are no changes
-    """
-    changes = False
-    try:
-        reg = app.get_schedule(quarter, year)
-
-        courses = app.parse_response(reg)
-        # Check that we have received something worthwhile
-        if len(courses) > 0:
-            dump_file = app.os.path.join(app.LOG_DIR, '{}_{}_dump.json'.format(
-                quarter.lower(), year))
-            try:
-                with open(dump_file) as dump:
-                    if dump.read() != reg:
-                        changes = reg
-            except IOError:
-                # File was not available, create it
-                with open(dump_file, 'w') as dump:
-                    dump.write(reg)
-
-        else:
-            print('Oops, there is nothing available for {} {} yet!'.format(
-                app.decode_quarter(quarter), year
-                ))
-    # Catch a ctrl+c interrupt and print an exit message
-    except KeyboardInterrupt:
-        print('\nBye Felicia!')
-        quit()
-
-    return changes
-
-def update_changes(quarter, year, data):
-    """
-    Updates the last dump for a given academic term.
-
-    Args:
-        quarter (string):   the academic quarter for the dump
-        year (string):      the academic year for the dump
-        data (string):      the new dump data
-    """
-    if data:
-        with open('{}_{}_dump.json'.format(quarter.lower(), year), 'w') as dump:
-            dump.write(data)
 
 def notify(data):
     """
@@ -75,18 +23,50 @@ def notify(data):
         data (string):  The data to include in the notification (i.e. the 
         new changes)
     """
+    err = "Error finding API key!"
     ifttt_channel = 'banner_changes'
-    url = 'https://maker.ifttt.com/trigger/' + ifttt_channel + '/with/key/'
+    ifttt = 'https://maker.ifttt.com/trigger/' + ifttt_channel + '/with/key/'
+    pb = "https://api.pushbullet.com/v2/pushes"
     credentials = {}
-    payload = { 'value1' : data }
-    try:
-        with open(app.os.path.join(app.PROJ_ROOT, 'cas_login.json')) as cas:
-            credentials = app.json.loads(cas.read())
-    except:
-        print("Error finding API key!")
-        exit(1)
 
-    requests.post(url + credentials['ifttt'], data=payload)
+    if app.args['c']:
+        with open(app.args['c']) as cas:
+            credentials = app.json.loads(cas.read())
+        try:
+            with open(app.args['c']) as cas:
+                credentials = app.json.loads(cas.read())
+        except:
+            print(err)
+            print('{} is not a valid path.'.format(app.args['c']))
+            log_entry(err)
+            exit(1)
+    else:
+        try:
+            with open(os.path.join(PROJ_ROOT, 'credentials.json')) as cas:
+                credentials = app.json.loads(cas.read())
+        except:
+            print(err)
+            log_entry(err)
+            exit(1)
+
+    ifttt_payload = { 'value1' : data }
+    pb_payload = { 
+            'type' : 'note',
+            'title' : 'New grades!',
+            'body' : data
+            }
+
+    if not data:
+        pb_payload['body'] = ''
+
+    if credentials['pushbullet']:
+        return requests.post(pb, auth=(credentials['pushbullet'], ''), 
+                data=pb_payload)
+    # if credentials['ifttt']:
+    #     return requests.post(ifttt + credentials['ifttt'], data=ifttt_payload)
+    else:
+        print(err)
+        log_entry(err)
 
 def log_entry(data):
     """
@@ -101,6 +81,29 @@ def log_entry(data):
     with open(changes, 'a') as log:
         log.write('{}: {}\n'.format(timestamp, data))
 
+def grades_string(courses):
+    """
+    Creates a response string with all grades.
+
+    Args:
+        courses (object): a courses object returned from cached_data
+    """
+    grades = ''
+    # Check that we have received something worthwhile
+    if len(courses) > 0:
+        no_grades = True
+        for course in courses:
+            if course['grade']:
+                subject = '{}{}: '.format(course['subject'], 
+                        course['courseNumber'])
+                grades += '{0:<9}{1:2}\n'.format(subject, course['grade'])
+                no_grades = False
+
+        if no_grades:
+            grades = 'No grades available yet...'
+
+    return grades
+
 def main():
     """
     Checks for a change in Banner registration data since last GET
@@ -110,14 +113,37 @@ def main():
         app.print_greeting(module=app_name, version=version)
 
     quarter,year = app.get_user_input()
+    term = '_{}{}'.format(year, quarter)
+    class_schedule = '{} {}'.format(quarter, year)
 
-    changes = new_changes(quarter, year)
-    if changes:
+    try:
+        cached_data = app.json.loads(app.get_cached(term)['data'])
+    except:
+        if not app.SILENT:
+            print('First run...')
+        reg = get_schedule(quarter, year)
+        cached_data = app.json.loads(app.get_cached(term)['data'])
+        pass
+
+    if app.TEST:
+        body = grades_string(cached_data['data']['registrations'])
+        test_msg = '***TEST***\n{}***TEST***'.format(body)
+        res = notify(test_msg)
+        print(res.text)
+        print(test_msg)
+        exit(0)
+
+    reg = get_schedule(quarter, year)
+    new_data = app.json.loads(app.get_cached(term)['data'])
+
+    if (cached_data != new_data):
         log_entry('New changes')
         if not app.SILENT:
             print('New changes!')
-        notify(False)
-        update_changes(quarter, year, changes)
+        res = notify(False)
+        log_entry('Notification result: {}'.format(res.status_code))
+        if res.status_code != 200:
+            log_entry('Notification error: {}\n'.format(res.text))
     else:
         log_entry('')
         if not app.SILENT:

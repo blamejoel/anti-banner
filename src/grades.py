@@ -56,7 +56,7 @@ def main():
 
             no_grades = True
             for course in courses:
-                if not (course['grade'] == None):
+                if course['grade']:
                     print_course_grade_info(course)
                     no_grades = False
 

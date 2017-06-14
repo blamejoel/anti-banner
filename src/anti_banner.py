@@ -28,6 +28,8 @@ parser.add_argument('--debug', action='store_true',
         help='store dumps for debugging')
 parser.add_argument('--cached', action='store_true', 
         help='use cached data, if available')
+parser.add_argument('--test', action='store_true', 
+        help='test notifications')
 args = vars(parser.parse_args())
 
 data_file = 'reg.db'
@@ -45,6 +47,7 @@ if not os.path.exists(DATA_DIR):
 SILENT = args['silent']
 DEBUG = args['debug']
 CACHED = args['cached']
+TEST = args['test']
 
 TODAY = datetime.now()
 
