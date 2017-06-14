@@ -13,6 +13,7 @@ changes.
 
 ## Standalone executable (NEW)
 A packaged executable is also available for Linux!
+([Download](https://github.com/jgome043/anti-banner/releases))
 
 The prepackaged executable is ready to go with no installation required 
 (hopefully). Again, nothing is promised to be working, report any bugs to the 
