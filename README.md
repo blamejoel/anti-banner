@@ -1,25 +1,10 @@
 # anti-banner
 Anti-Banner is a set of simple tools to enhance or improve the UCR Banner 
-system.
+system.  
 
-## Utilities
-* `add_to_gcal.py` - Gets a class schedule by academic quarter and year and adds 
-the schedule to Google Calendar.  
-* `grades.py` - Gets course grades from the registration info on Banner. Often 
-times, grades are available here before they are officially posted.  
-* `banner_changes.py` - Checks Banner for changes in registration data. 
-Could be scheduled to run on a timed interval and send notifications of any 
-changes.
+`main.py` is the standalone CLI  
 
-## Standalone executable (NEW)
-A packaged executable is also available for Linux!
-([Download](https://github.com/jgome043/anti-banner/releases))
-
-The prepackaged executable is ready to go with no installation required 
-(hopefully). Again, nothing is promised to be working, report any bugs to the 
-issues tracker.
-
-These are two required arguments for the standalone executable:  
+These are two required arguments:  
 `-q [quarter]` - the academic you'd like to use in your query  
 `-y [year]` - the academic year you'd like to use in your query  
 
@@ -29,7 +14,16 @@ Additionally, the following optional arguments are also available:
 from Banner
 --test - test push notification system
 
-Example: `./grades -q winter -y 2017 -c /home/bob/credentials.json`
+Example: `./main.py -q winter -y 2017 -c /home/bob/credentials.json`
+
+## Utilities
+* `add_to_gcal.py` - Gets a class schedule by academic quarter and year and adds 
+the schedule to Google Calendar.  
+* `grades.py` - Gets course grades from the registration info on Banner. Often 
+times, grades are available here before they are officially posted.  
+* `banner_changes.py` - Checks Banner for changes in registration data. 
+Could be scheduled to run on a timed interval and send notifications of any 
+changes.
 
 These tools are a work in-progress and although they may work "good-enough", 
 there may still be some bugs. Please report any such findings to the issue 
