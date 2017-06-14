@@ -26,6 +26,7 @@ Additionally, the following optional arguments are also available:
 `-c [path/to/credentials]` - the path to your credentials.json  
 `--cached` - use locally cached data instead of downloading the latest data 
 from Banner
+--test - test push notification system
 
 Example: `./grades -q winter -y 2017 -c /home/bob/credentials.json`
 
@@ -62,7 +63,9 @@ credentials.json file structure should be
 ```
 {
     "netID" : "your_net_id_here",
-    "password" : "your_CAS_password_here"
+    "password" : "your_CAS_password_here",
+    "pushbullet" : "your_pushbullet_api_key",
+    "ifttt" : "your_IFTTT_maker_channel_api_key"
 }
 ```
 
