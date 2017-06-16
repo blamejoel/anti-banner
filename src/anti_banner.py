@@ -9,7 +9,7 @@
 """
 from datetime import datetime
 from getpass import getpass
-from subprocess import run
+# from subprocess import run
 import json
 import argparse
 import os
@@ -275,5 +275,5 @@ def cache_data(key, data):
                 'data' : data }
         cache[key] = record[key]
 
-def run_process(process):
-    run(process.split())
+# def run_process(process):
+#     run(process.split())
