@@ -30,7 +30,7 @@ there may still be some bugs. Please report any such findings to the issue
 tracker!
 
 ## Dependencies
-Python 3.5.2+  
+Python 3.5.2+ (Python2.7 should work too)  
 requests  
 Google API Client Library
 
