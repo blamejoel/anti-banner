@@ -140,7 +140,7 @@ def main():
         log_entry('New changes')
         if not app.SILENT:
             print('New changes!')
-        body = grades_string(cached_data['data']['registrations'])
+        body = grades_string(new_data['data']['registrations'])
         res = notify(body)
         log_entry('Notification result: {}'.format(res.status_code))
         if res.status_code != 200:
