@@ -8,9 +8,9 @@
     Anti-Banner Grades Fetcher - Fetches final grades from RWeb.
 """
 import anti_banner as app
+import grades
 from lxml import html
 from banner_connect import get_session
-from grades import print_course_grade_info
 
 app_name = 'Final Grades Fetcher'
 version = '1.0'
@@ -80,8 +80,8 @@ def main():
         if len(courses) > 0:
             print('\n{} Available Grades:'.format(class_schedule))
 
-            grades = print_grades(courses)
-            if grades is None:
+            result = grades.print_grades(courses)
+            if result is None:
                 print('No grades available yet...')
             print('All Done!')
         else:
