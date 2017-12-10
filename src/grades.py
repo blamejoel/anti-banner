@@ -40,7 +40,7 @@ def print_grades(courses):
         True if there is at least one grade to print, otherwise False.
     """
     grades = False
-    for course in courses:
+    for course in sorted(courses, key=lambda k: k['courseTitle']):
         if course['grade']:
             print_course_grade_info(course)
             grades = True
