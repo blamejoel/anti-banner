@@ -13,6 +13,51 @@ import re
 import json
 from sys import exit
 
+def get_session(url):
+    """
+    Connects to ucr.edu and returns an authenticated session.
+
+    Args:
+        url (string):   A url to an authentication portal or that redirects 
+        to an authentication portal.
+
+    Returns:
+        A tuple containing a requests Session object for the session, 
+        and the POST response.
+
+    Examples:
+        >>> get_session('rweb.ucr.edu')
+    """
+    auth_url = 'https://auth.ucr.edu'
+    session = requests.Session()
+
+    # Navigate to schedule url
+    if not app.SILENT:
+        print('Connecting to Banner...')
+    response = session.get(url)
+
+    # construct POST URL from form action url
+    auth_url += find_action(parse_html(response.text, 'action'))
+
+    credentials = {}
+    credentials['netID'], credentials['password'] = app.get_login()
+
+    payload = {
+            'username' : credentials['netID'],
+            'password' : credentials['password'],
+            'lt' : find_lt(parse_html(response.text, 'name="lt"')),
+            'execution' : 'e1s1',
+            '_eventId' : 'submit',
+            'submit.x' : 45,
+            'submit.y' : 16,
+            'submit' : 'LOGIN'
+            }
+
+    # Submit the CAS login form
+    response = session.post(auth_url, data=payload)
+    return (session, response)
+
+
 def get_schedule(quarter, year):
     """
     Connects to Banner and returns a JSON object of a student class schedule 
@@ -34,37 +79,11 @@ def get_schedule(quarter, year):
         if data:
             return data['data']
 
-    auth_url = 'https://auth.ucr.edu'
     sched_url = 'https://registrationssb.ucr.edu/StudentRegistrationSsb/' + \
             'ssb/registrationHistory/reset?term=' + year + \
             app.encode_quarter(quarter)
 
-    session = requests.Session()
-
-    # Navigate to schedule url
-    if not app.SILENT:
-        print('Connecting to Banner...')
-    response = session.get(sched_url)
-
-    # construct POST URL from form action url
-    auth_url += find_action(parse_html(response.text, 'action'))
-
-    credentials = {}
-    credentials['netID'], credentials['password'] = app.get_login()
-
-    payload = {
-            'username' : credentials['netID'],
-            'password' : credentials['password'],
-            'lt' : find_lt(parse_html(response.text, 'name="lt"')),
-            'execution' : 'e1s1',
-            '_eventId' : 'submit',
-            'submit.x' : 45,
-            'submit.y' : 16,
-            'submit' : 'LOGIN'
-            }
-
-    # Submit the CAS login form
-    response = session.post(auth_url, data=payload)
+    session, response = get_session(sched_url)
 
     # update cache
     app.cache_data(term, response.text)
