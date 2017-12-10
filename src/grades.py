@@ -9,6 +9,7 @@
     available on RWeb.
 """
 import anti_banner as app
+import final_grades
 from sys import exit
 from banner_connect import get_schedule
 
@@ -28,6 +29,23 @@ def print_course_grade_info(course):
         course['courseNumber'], course['courseTitle'].title()))
     print('Grade: {}\n'.format(course['grade']))
 
+def print_grades(courses):
+    """
+    Prints course info including grades for a list of courses.
+
+    Args:
+        courses (list): A list of courses containing structured course data.
+
+    Returns:
+        True if there is at least one grade to print, otherwise False.
+    """
+    grades = False
+    for course in courses:
+        if course['grade']:
+            print_course_grade_info(course)
+            grades = True
+
+    return grades
 
 def main():
     """
@@ -45,6 +63,7 @@ def main():
             print('Grades as of {}'.format(cache['dumpDate']))
 
         else:
+            print('Checking Banner Registration Data...')
             get_schedule(quarter, year)
 
         cached_data = app.json.loads(app.get_cached(term)['data'])
@@ -54,19 +73,25 @@ def main():
         if len(courses) > 0:
             print('\n{} Available Grades:'.format(class_schedule))
 
-            no_grades = True
-            for course in courses:
-                if course['grade']:
-                    print_course_grade_info(course)
-                    no_grades = False
-
-            if no_grades:
+            grades = print_grades(courses)
+            if grades is None:
                 print('No grades available yet...')
             print('All Done!')
         else:
-            print('Oops, there is nothing available for {} {} yet!'.format(
+            print('Oops, there is nothing available for {} {} on Banner!'.format(
                 app.decode_quarter(quarter), year
                 ))
+            print('Checking RWeb...')
+            courses = final_grades.get_final_grades(quarter, year)
+            if len(courses) > 0:
+                print('\n{} Available Grades:'.format(class_schedule))
+
+                grades = print_grades(courses)
+                if grades is None:
+                    print('No grades available yet...')
+                print('All Done!')
+            else:
+                print('Sorry, nothing there either.')
     # Catch a ctrl+c interrupt and print an exit message
     except KeyboardInterrupt:
         print('\nBye Felicia!')
