@@ -57,12 +57,12 @@ def extract_course_info(content):
     course_table = tree.xpath('//table')[5]
     for i, data in enumerate(course_table[2:]):
         course = {}
-        course['courseReferenceNumber'] = data[0].text
-        course['subject'] = data[1].text
-        course['courseNumber'] = data[2].text 
-        course['sequenceNumber'] = data[3].text
-        course['courseTitle'] = data[4].text
-        course['grade'] = data[6].text
+        course['courseReferenceNumber'] = data[0].text.replace('\n', '')
+        course['subject'] = data[1].text.replace('\n', '')
+        course['courseNumber'] = data[2].text .replace('\n', '')
+        course['sequenceNumber'] = data[3].text.replace('\n', '')
+        course['courseTitle'] = data[4].text.replace('\n', '')
+        course['grade'] = data[6].text.replace('\n', '')
         courses.append(course)
     return courses
 
