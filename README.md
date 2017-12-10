@@ -84,3 +84,14 @@ credentials.json file.
 If it's your first time running the add_to_gcal.py script, your browser will be 
 opened to obtain OAuth credentials for your Google Account. Login to the Google 
 account you'd like to import the schedule into.
+
+### Known Issues
+`grades.py` prioritizes grades from Banner registration data because grades are 
+often available here before they are available from the RWeb portal. To the 
+best of my knowledge, the grades pulled from the registration data will be 
+whatever grade the instructor submitted at the end of the term. If a manual 
+grade change of your _final_ grade is done later -- the new grade may _ONLY_ 
+be available from RWeb. This might explain discrepancies if the results from 
+`grades.py` do not match the results from `final_grades.py`. `final_grades.py` 
+on the other hand, will always return the grading information available from 
+RWeb.  
