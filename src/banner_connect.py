@@ -19,7 +19,7 @@ def get_session(url):
 
     Args:
         url (string):   A url to an authentication portal or that redirects 
-        to an authentication portal.
+                        to an authentication portal.
 
     Returns:
         A tuple containing a requests Session object for the session, 
@@ -33,7 +33,7 @@ def get_session(url):
 
     # Navigate to schedule url
     if not app.SILENT:
-        print('Connecting to Banner...')
+        print('Connecting...')
     response = session.get(url)
 
     # construct POST URL from form action url

@@ -120,7 +120,7 @@ def main():
         cached_data = app.json.loads(app.get_cached(term)['data'])
     except:
         if not app.SILENT:
-            print('First run...')
+            print('First run for this quarter/year combination...')
         reg = get_schedule(quarter, year)
         cached_data = app.json.loads(app.get_cached(term)['data'])
         pass
