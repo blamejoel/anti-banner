@@ -21,6 +21,9 @@ Example: `./main.py -q winter -y 2017 -c /home/bob/credentials.json`
 the schedule to Google Calendar.  
 * `grades.py` - Gets course grades from the registration info on Banner. Often 
 times, grades are available here before they are officially posted.  
+* `final_grades.py` - Gets final grades posted on RWeb. This is useful for
+quarters that predate Banner. If `grades.py` cannot find grade info, it will 
+fallback to using this tool.  
 * `banner_changes.py` - Checks Banner for changes in registration data. 
 Could be scheduled to run on a timed interval and send notifications of any 
 changes.
