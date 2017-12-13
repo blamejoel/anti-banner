@@ -10,11 +10,13 @@
 """
 import anti_banner as app
 import final_grades
+from gpa import get_gpa
 from sys import exit
 from banner_connect import get_schedule
 
 app_name = 'Grades (Preview) Fetcher'
 version = '1.0'
+class_schedule = 'this term'
 
 def print_course_grade_info(course):
     """
@@ -39,9 +41,12 @@ def print_grades(courses):
     Returns:
         True if there is at least one grade to print, otherwise False.
     """
-    grades = False
+    grades = None
     for course in sorted(courses, key=lambda k: k['courseTitle']):
         if course['grade']:
+            if grades == None:
+                print('\n{} Available Grades:'.format(class_schedule))
+
             print_course_grade_info(course)
             grades = True
 
@@ -56,6 +61,7 @@ def main():
     try:
         quarter,year = app.get_user_input()
         term = '_{}{}'.format(year, quarter)
+        global class_schedule
         class_schedule = '{} {}'.format(quarter, year)
 
         if app.CACHED:
@@ -64,6 +70,9 @@ def main():
 
         else:
             print('Checking Banner Registration Data...')
+            gpa = get_gpa()
+            if gpa:
+                print('Current Overall GPA: {}'.format(gpa))
             get_schedule(quarter, year)
 
         cached_data = app.json.loads(app.get_cached(term)['data'])
@@ -71,8 +80,6 @@ def main():
 
         # Check that we have received something worthwhile
         if len(courses) > 0:
-            print('\n{} Available Grades:'.format(class_schedule))
-
             grades = print_grades(courses)
             if grades is None:
                 print('No grades available yet...')
@@ -84,8 +91,6 @@ def main():
             print('Checking RWeb...')
             courses = final_grades.get_final_grades(quarter, year)
             if len(courses) > 0:
-                print('\n{} Available Grades:'.format(class_schedule))
-
                 grades = print_grades(courses)
                 if grades is None:
                     print('No grades available yet...')
