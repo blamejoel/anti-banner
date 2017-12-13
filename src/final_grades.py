@@ -74,12 +74,10 @@ def main():
 
     try:
         quarter,year = app.get_user_input()
-        class_schedule = '{} {}'.format(quarter, year)
+        grades.class_schedule = '{} {}'.format(quarter, year)
         courses = get_final_grades(quarter, year)
         # Check that we have received something worthwhile
         if len(courses) > 0:
-            print('\n{} Available Grades:'.format(class_schedule))
-
             result = grades.print_grades(courses)
             if result is None:
                 print('No grades available yet...')
