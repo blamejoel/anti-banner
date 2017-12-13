@@ -13,7 +13,7 @@ import re
 import json
 from sys import exit
 
-def get_session(url):
+def get_session(url='https://auth.ucr.edu/cas/login'):
     """
     Connects to ucr.edu and returns an authenticated session.
 
@@ -32,8 +32,6 @@ def get_session(url):
     session = requests.Session()
 
     # Navigate to schedule url
-    if not app.SILENT:
-        print('Connecting...')
     response = session.get(url)
 
     # construct POST URL from form action url
