@@ -10,6 +10,7 @@
 """
 import anti_banner as app
 import gcal
+import time
 from datetime import datetime
 from datetime import timedelta
 from banner_connect import get_schedule
@@ -18,7 +19,8 @@ app_name = 'Class Schedule'
 version = '1.0'
 UCR = 'University of California, Riverside'
 timeZone = 'America/Los_Angeles'
-tzOffset = '-07:00'
+utcOffset = str(time.localtime().tm_gmtoff/60/60)
+tzOffset = '-0' + utcOffset[1] + ':00'
 
 def get_days(meetingTimes):
     """
